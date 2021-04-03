@@ -1,0 +1,22 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>netcoreapp3.1</TargetFramework>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <Compile Remove="DelusionalApi\**" />
+    <Compile Remove="DelusionBotApi\**" />
+    <EmbeddedResource Remove="DelusionalApi\**" />
+    <EmbeddedResource Remove="DelusionBotApi\**" />
+    <None Remove="DelusionalApi\**" />
+    <None Remove="DelusionBotApi\**" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="CsvHelper" Version="26.1.0" />
+    <PackageReference Include="Neo4jClient" Version="4.1.6" />
+  </ItemGroup>
+
+</Project>

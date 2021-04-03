@@ -1,0 +1,31 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 16
+VisualStudioVersion = 16.0.30320.27
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "DelusionBotDatabaseBuilder", "DelusionBotDatabaseBuilder.csproj", "{209FAED2-AFF8-444D-93B2-C522A4FB105C}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "DelusionalApi", "DelusionalApi\DelusionalApi.csproj", "{E99078DA-5987-4350-B3C0-76C592E613CF}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{209FAED2-AFF8-444D-93B2-C522A4FB105C}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{209FAED2-AFF8-444D-93B2-C522A4FB105C}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{209FAED2-AFF8-444D-93B2-C522A4FB105C}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{209FAED2-AFF8-444D-93B2-C522A4FB105C}.Release|Any CPU.Build.0 = Release|Any CPU
+		{E99078DA-5987-4350-B3C0-76C592E613CF}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{E99078DA-5987-4350-B3C0-76C592E613CF}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{E99078DA-5987-4350-B3C0-76C592E613CF}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{E99078DA-5987-4350-B3C0-76C592E613CF}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {BBB43A52-3778-49B7-8A87-112D7D875E26}
+	EndGlobalSection
+EndGlobal
