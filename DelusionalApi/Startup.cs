@@ -3,6 +3,8 @@ using Microsoft.AspNetCore.Hosting;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
+using System.IO;
+using System.Text.Json.Serialization;
 
 namespace DelusionalApi
 {
@@ -18,8 +20,21 @@ namespace DelusionalApi
         // This method gets called by the runtime. Use this method to add services to the container.
         public void ConfigureServices(IServiceCollection services)
         {
-            services.AddControllers();
-            services.AddSwaggerGen();
+            services.AddControllers()
+                 .AddJsonOptions(x =>
+                 {
+                     x.JsonSerializerOptions.WriteIndented = true;
+                     x.JsonSerializerOptions.Converters.Add(new JsonStringEnumConverter());
+                 });
+
+
+            services.AddSwaggerGen(c =>
+             {
+                 c.UseInlineDefinitionsForEnums();
+
+                 var filePath = Path.Combine(System.AppContext.BaseDirectory, "DelusionalApi.xml");
+                 c.IncludeXmlComments(filePath);
+             });
 
             services.AddScoped<IConceptGraphDb, ConceptGraphDb>();
             services.AddSingleton<IAssociationFormatter, AssociationFormatter>();
@@ -38,11 +53,13 @@ namespace DelusionalApi
             app.UseSwagger(c =>
             {
                 c.SerializeAsV2 = true;
+                
             });
 
             app.UseSwaggerUI(c =>
             {
                 c.SwaggerEndpoint("/swagger/v1/swagger.json", "My API V1");
+                c.DocExpansion(Swashbuckle.AspNetCore.SwaggerUI.DocExpansion.Full);
                 c.RoutePrefix = string.Empty;
             });
 
