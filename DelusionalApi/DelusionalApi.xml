@@ -4,7 +4,7 @@
         <name>DelusionalApi</name>
     </assembly>
     <members>
-        <member name="M:DelusionalApi.Controllers.DelusionController.Get(System.String,System.Nullable{DelusionalApi.Model.DelusionType})">
+        <member name="M:DelusionalApi.Controllers.DelusionController.Get(DelusionalApi.Model.Voice,System.String,System.Nullable{DelusionalApi.Model.DelusionType})">
              <summary>
              Gets delusional text connecting the passed-in word to a delusion. Even when the parameters are the same,
              response text generation involves randomness and can vary for each request.

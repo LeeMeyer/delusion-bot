@@ -1,5 +1,6 @@
 ﻿using DelusionalApi.Model;
 using Neo4j.Driver;
+using Newtonsoft.Json;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -56,6 +57,43 @@ namespace DelusionalApi
 
             return returnList;
         }
+
+        public async Task SavePoem(PhonePoem phonePoem)
+        {
+            var session = _driver.AsyncSession();
+
+            await session.WriteTransactionAsync(async tx =>
+            {
+                await tx.RunAsync("MATCH (n:Madlib {phoneNumber: '" + phonePoem.PhoneNumber + "'}) DELETE n");
+                await tx.RunAsync(string.Format("CREATE (n:Madlib {{phoneNumber: '{0}', excerptIndex: {1}, tokenIndexes: {2}, replacementWords: {3} }} )", 
+                    phonePoem.PhoneNumber, 
+                    phonePoem.ExcerptIndex, 
+                    JsonConvert.SerializeObject(phonePoem.TokenIndexes)),
+                    JsonConvert.SerializeObject(phonePoem.ReplacementWords));
+                await tx.CommitAsync();
+            });
+        }
+
+        public async Task<PhonePoem> GetPoem(string phoneNumber)
+        {
+            var session = _driver.AsyncSession();
+            PhonePoem phonePoem = null;
+
+            await session.ReadTransactionAsync(async tx =>
+            {
+                var result = await tx.RunAsync("MATCH(n:Madlib { phoneNumber: '" + phoneNumber + "'}) RETURN n");
+
+                if (await result.FetchAsync())
+                {
+                    phonePoem = result.Current.As<PhonePoem>();
+                }
+            });
+
+            return phonePoem;
+        }
+
+
+
 
         public void Dispose()
         {

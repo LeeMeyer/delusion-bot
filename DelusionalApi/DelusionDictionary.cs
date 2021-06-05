@@ -76,7 +76,7 @@ namespace DelusionalApi
                 case DelusionType.Impregnate:
                     return "You know you were sired via illegal artificial insemination.";
                 case DelusionType.Wires:
-                    return "Hottee tampered with the wires to make us freeze to death as a form of domestic violence.";
+                    return "Hotty tampered with the wires to make us freeze to death as a form of domestic violence.";
             }
 
             return string.Empty;

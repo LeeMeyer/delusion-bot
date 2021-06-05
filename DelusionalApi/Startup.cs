@@ -1,3 +1,4 @@
+using DelusionalApi.Service;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.Extensions.Configuration;
@@ -40,6 +41,8 @@ namespace DelusionalApi
             services.AddSingleton<IAssociationFormatter, AssociationFormatter>();
             services.AddSingleton(AppSetttings);
             services.AddSingleton<IDelusionDictionary, DelusionDictionary>();
+            services.AddSingleton<ISpeechService, CustomVoiceService>();
+            services.AddSingleton<IMadlibsService, MadlibsService>();
         }
 
         // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.
