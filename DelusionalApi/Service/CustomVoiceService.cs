@@ -1,4 +1,6 @@
 ﻿using DelusionalApi.Model;
+using Flurl;
+using Microsoft.AspNetCore.Http;
 using Microsoft.CognitiveServices.Speech;
 using Microsoft.CognitiveServices.Speech.Audio;
 using System;
@@ -9,6 +11,12 @@ namespace DelusionalApi.Service
 {
     public class CustomVoiceService : ISpeechService
     {
+        IHttpContextAccessor _httpContextAccessor;
+        public CustomVoiceService(IHttpContextAccessor httpContextAccessor)
+        {
+            _httpContextAccessor = httpContextAccessor;
+        }
+
         public async Task<AudioDataStream> SpeakText(string text, Voice voice)
         {
             string subscriptionKey = "1718577cfb134a6bb0c74ca969746a31";
@@ -54,11 +62,12 @@ namespace DelusionalApi.Service
             return null;
         }
 
-        public Uri VoiceUrl(string words, params string[] args)
+        public Uri VoiceUrl(string words, Voice voice, params string[] args)
         {
-            return "/Delusion/Say"
-                .WithQuery("words", string.Format(words, args))
-                .WithQuery("voice", Voice.Bella.ToString());
+            return _httpContextAccessor.HttpContext.Request
+                .WithPath("/Delusion/Say")
+                .SetQueryParams(new { words = string.Format(words, args), voice = voice })
+                .ToUri();
         }
     }
 }

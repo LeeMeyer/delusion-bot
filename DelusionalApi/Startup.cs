@@ -42,7 +42,9 @@ namespace DelusionalApi
             services.AddSingleton(AppSetttings);
             services.AddSingleton<IDelusionDictionary, DelusionDictionary>();
             services.AddSingleton<ISpeechService, CustomVoiceService>();
-            services.AddSingleton<IMadlibsService, MadlibsService>();
+            services.AddScoped<IVoicePromptsService, VoicePromptsService>();
+
+            services.AddHttpContextAccessor();
         }
 
         // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.

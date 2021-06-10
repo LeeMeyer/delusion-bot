@@ -16,7 +16,8 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="Catalyst" Version="1.0.16767" />
+    <PackageReference Include="Catalyst.WordNet" Version="1.0.18054" />
+    <PackageReference Include="Flurl" Version="3.0.2" />
     <PackageReference Include="Microsoft.CognitiveServices.Speech" Version="1.16.0" />
     <PackageReference Include="Microsoft.VisualStudio.Azure.Containers.Tools.Targets" Version="1.10.9" />
     <PackageReference Include="Neo4jClient" Version="4.1.6" />

@@ -1,10 +1,14 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.IO;
+using System.Linq;
+using System.Net.Http;
 using System.Threading.Tasks;
 using DelusionalApi.Model;
 using DelusionalApi.Service;
 using Microsoft.AspNetCore.Mvc;
 using Twilio;
+using Twilio.Rest.Api.V2010.Account;
 
 namespace DelusionalApi.Controllers
 {
@@ -17,23 +21,23 @@ namespace DelusionalApi.Controllers
         private readonly IDelusionDictionary _delusionDictionary;
         private readonly ISpeechService _speechService;
         private readonly AppSetttings _appSetttings;
-        private readonly IMadlibsService _madlibsService;
+        private readonly IVoicePromptsService _voicePromptsService;
 
         public DelusionController(IConceptGraphDb conceptGraphDb, IAssociationFormatter associationFormatter,
             IDelusionDictionary delusionDictionary, ISpeechService speechService, AppSetttings appSetttings, 
-            IMadlibsService madlibsService)
+            IVoicePromptsService voicePromptsService)
         {
             _conceptGraphDb = conceptGraphDb;
             _associationFormatter = associationFormatter;
             _delusionDictionary = delusionDictionary;
             _speechService = speechService;
             _appSetttings = appSetttings;
-            _madlibsService = madlibsService;
+            _voicePromptsService = voicePromptsService;
         }
 
         [HttpPost]
         [Route("Call")]
-        public async Task<IActionResult> Call(string phoneNumber)
+        public IActionResult Call(string phoneNumber)
         {
             if (phoneNumber.StartsWith("04"))
             {
@@ -44,10 +48,11 @@ namespace DelusionalApi.Controllers
 
             TwilioClient.Init(_appSetttings.TwilioSettings.TwilioAccountSid, _appSetttings.TwilioSettings.TwilioAuthToken);
 
-            var introduction = _madlibsService.InitializeGame(new Uri("/Delusion/HandleYesOrNo"), phoneNumber);
+            var introduction = _voicePromptsService.FirstVoicePrompt(Request.WithPath("/Delusion/HandleYesOrNo"));
 
             /*var call = CallResource.Create(
-                twiml: moo.ToString(),
+                record: true,
+                twiml: introduction.ToString(),
                 to: new Twilio.Types.PhoneNumber(phoneNumber),
                 from: new Twilio.Types.PhoneNumber(_appSetttings.TwilioSettings.CallerId)
             );*/
@@ -61,26 +66,10 @@ namespace DelusionalApi.Controllers
         }
 
         [HttpGet]
-        [Route("HandleYesOrNo")]
-
-        public async Task<IActionResult> HandleYesOrNo(string SpeechResult, string phoneNumber)
+        [Route("HandleVoicePromptResponse")]
+        public async Task<IActionResult> HandleVoicePromptResponse(string SpeechResult, int promptIndex = 0)
         {
-            var response = await _madlibsService.HandleYesOrNo(SpeechResult, phoneNumber, new Uri("/Delusion/HandleTokenPrompt"));
-           
-            return new ContentResult
-            {
-                Content = response.ToString(),
-                ContentType = "application/xml",
-                StatusCode = 200
-            };
-        }
-
-
-        [HttpGet]
-        [Route("HandleTokenPrompt")]
-        public IActionResult HandleTokenPrompt(string SpeechResult, string phoneNumber, int promptIndex)
-        {
-            var response = _madlibsService.HandleTokenPrompt(SpeechResult, phoneNumber, promptIndex);
+            var response = _voicePromptsService.HandleVoicePromptResponse(SpeechResult, promptIndex);
 
             return new ContentResult
             {
@@ -89,25 +78,6 @@ namespace DelusionalApi.Controllers
                 StatusCode = 200
             };
         }
-
-        [HttpGet]
-        [Route("Say")]
-        [ApiExplorerSettings(IgnoreApi = true)]
-
-        public async Task<IActionResult> Say(Voice voice, string words)
-        {
-            var audioStream = await _speechService.SpeakText(words, voice);
-
-            var filename = Guid.NewGuid() + ".wav";
-
-            var filePath = Path.Combine(System.AppContext.BaseDirectory, filename);
-            await audioStream.SaveToWaveFileAsync(filePath);
-            var bytes = System.IO.File.ReadAllBytes(filePath);
-            System.IO.File.Delete(filePath); 
-
-            return File(bytes, "audio/wav", $"deulsion.wav");
-        }
-
 
         /// <summary>
         /// Gets delusional text connecting the passed-in word to a delusion. Even when the parameters are the same,
@@ -136,11 +106,16 @@ namespace DelusionalApi.Controllers
         /// <response code="200">Returns a delusional string</response>           
         [HttpGet]
         [ApiExplorerSettings(IgnoreApi = true)]
-        public async Task<IActionResult> Get(Voice voice, string word = "silence", DelusionType? delusionType = null)
+        public async Task<IActionResult> Get(Voice voice = Voice.Random, string word = "silence", DelusionType? delusionType = null)
         {
             if (!delusionType.HasValue)
             {
                 delusionType = (DelusionType)new Random().Next(0, (int)DelusionType.Impregnate);
+            }
+
+            if (voice == Voice.Random)
+            {
+                voice = Enum.GetValues(typeof(Voice)).Cast<Voice>().OrderBy(v => Guid.NewGuid()).First();
             }
 
             var endConcept = _delusionDictionary.RandomConcept(delusionType.Value);
@@ -157,6 +132,22 @@ namespace DelusionalApi.Controllers
             return File(bytes, "audio/wav", $"deulsion.wav");
         }
 
+        [HttpGet]
+        [Route("Say")]
+        [ApiExplorerSettings(IgnoreApi = true)]
 
+        public async Task<IActionResult> Say(Voice voice, string words)
+        {
+            var audioStream = await _speechService.SpeakText(words, voice);
+
+            var filename = Guid.NewGuid() + ".wav";
+
+            var filePath = Path.Combine(System.AppContext.BaseDirectory, filename);
+            await audioStream.SaveToWaveFileAsync(filePath);
+            var bytes = System.IO.File.ReadAllBytes(filePath);
+            System.IO.File.Delete(filePath);
+
+            return File(bytes, "audio/wav", $"deulsion.wav");
+        }
     }
 }

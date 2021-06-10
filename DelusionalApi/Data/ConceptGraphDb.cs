@@ -8,7 +8,7 @@ using System.Threading.Tasks;
 
 namespace DelusionalApi
 {
-    public class ConceptGraphDb : IDisposable, IConceptGraphDb
+    public class ConceptGraphDb : IConceptGraphDb, IDisposable
     {
         private readonly IDriver _driver;
 
@@ -58,23 +58,7 @@ namespace DelusionalApi
             return returnList;
         }
 
-        public async Task SavePoem(PhonePoem phonePoem)
-        {
-            var session = _driver.AsyncSession();
-
-            await session.WriteTransactionAsync(async tx =>
-            {
-                await tx.RunAsync("MATCH (n:Madlib {phoneNumber: '" + phonePoem.PhoneNumber + "'}) DELETE n");
-                await tx.RunAsync(string.Format("CREATE (n:Madlib {{phoneNumber: '{0}', excerptIndex: {1}, tokenIndexes: {2}, replacementWords: {3} }} )", 
-                    phonePoem.PhoneNumber, 
-                    phonePoem.ExcerptIndex, 
-                    JsonConvert.SerializeObject(phonePoem.TokenIndexes)),
-                    JsonConvert.SerializeObject(phonePoem.ReplacementWords));
-                await tx.CommitAsync();
-            });
-        }
-
-        public async Task<PhonePoem> GetPoem(string phoneNumber)
+     /*   public async Task<string> GetPoem(string phoneNumber)
         {
             var session = _driver.AsyncSession();
             PhonePoem phonePoem = null;
@@ -85,14 +69,19 @@ namespace DelusionalApi
 
                 if (await result.FetchAsync())
                 {
-                    phonePoem = result.Current.As<PhonePoem>();
+                    var node = result.Current.Values["n"].As<INode>();
+                    phonePoem = new PhonePoem
+                    {
+                        ExcerptIndex = (int)(long)node.Properties["excerptIndex"],
+                        PhoneNumber = (string)node.Properties["phoneNumber"],
+                        TokenIndexes = ((List<object>)node.Properties["tokenIndexes"]).Cast<long>().ToList(),
+                        ReplacementWords = ((List<object>)node.Properties["replacementWords"]).Cast<string>().ToList()
+                    };
                 }
             });
 
             return phonePoem;
-        }
-
-
+        }*/
 
 
         public void Dispose()
