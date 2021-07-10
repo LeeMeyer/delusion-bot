@@ -101,29 +101,25 @@ namespace DelusionalApi.Controllers
         [ApiExplorerSettings(IgnoreApi = true)]
         public async Task<IActionResult> HandleVoicePromptResponse([FromQuery] string CallSid, [FromQuery] string UnstableSpeechResult, [FromQuery] int SequenceNumber, [FromQuery] decimal Stability, [FromQuery] int promptIndex, [FromQuery] Voice voice)
         {
+            var key = GetPriorInputCacheKey(promptIndex, voice);
+
             if (promptIndex >= 2)
             {
                 var twiml = new VoiceResponse().Play(HttpContext.Request.WithPath(_botScriptService.GetRelativeUsedPath(voice), "goodbye.wav"));
 
-                var callUpdated = false;
-
-                while (!callUpdated)
+                
+                try
                 {
-                    try
-                    {
-                        CallResource.Update(pathSid: CallSid, twiml: twiml.ToString());
-                        callUpdated = true;
-                    }
-                    catch
-                    {
-                        //you always know you're in a good situation when you find yourself doing shit like this :(
-                        await Task.Delay(1000);
-                    }
+                    CallResource.Update(pathSid: CallSid, twiml: twiml.ToString());
                 }
+                catch
+                {
+                }
+                
             }
             else
             {
-                var key = GetPriorInputCacheKey(promptIndex, voice);
+              
                 if (!_memoryCache.Get<(int sequenceNumber, decimal stability, bool exists, bool delusionGenerated)>(key).exists)
                 {
                     var currentInput = (sequenceNumber: SequenceNumber, stability: Stability, exists: true, delusionGenerated: false);
@@ -186,7 +182,7 @@ namespace DelusionalApi.Controllers
                 catch
                 {
                     //you always know you're in a good situation when you find yourself doing shit like this :(
-                    await Task.Delay(1000);
+                    await Task.Delay(200);
                 }
             }
         }

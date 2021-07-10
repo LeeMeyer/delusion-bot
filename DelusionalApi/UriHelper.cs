@@ -10,12 +10,12 @@ namespace DelusionalApi
     {
         public static Uri WithPath(this HttpRequest request, string relativeUri)
         {
-            return new Uri("https://" + "71b961ae2680.ngrok.io/" + relativeUri);
+            return new Uri("https://" + request.Host + "/" + relativeUri);
         }
 
         public static Uri WithPath(this HttpRequest request, string relativeUri, string file)
         {
-            return new Uri("https://" + "71b961ae2680.ngrok.io/" + Path.Combine(relativeUri, file).Replace("\\", "/"));
+            return new Uri("https://" + request.Host + "/" + Path.Combine(relativeUri, file).Replace("\\", "/"));
         }
     }
 }
