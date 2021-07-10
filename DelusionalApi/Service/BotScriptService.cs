@@ -1,5 +1,4 @@
 ﻿using DelusionalApi.Model;
-using DelusionalApi.Model.Bots;
 using Microsoft.CognitiveServices.Speech;
 using Microsoft.VisualBasic.FileIO;
 using Newtonsoft.Json;
@@ -31,7 +30,7 @@ namespace DelusionalApi.Service
 
             if (!File.Exists(lockfilePath))
             {
-                File.Create(Path.Combine(botDirectory, ".lock"));
+                File.Create(Path.Combine(botDirectory, ".lock"), 100, FileOptions.Asynchronous);
 
                 await Save(bot.Intro(randomString), $"{botDirectory}/intro.wav", bot.Voice);
                 await Save(bot.Goodbye(randomString), $"{botDirectory}/goodbye.wav", bot.Voice);
@@ -42,7 +41,15 @@ namespace DelusionalApi.Service
                     jsonWriter.WriteStartObject();
                     jsonWriter.WritePropertyName($"Delusions");
 
-                    jsonWriter.WriteValue(bot.Delusions.OrderBy(d => Guid.NewGuid()).Take(rounds).ToArray());                    
+                    jsonWriter.WriteStartArray();
+                    
+                    foreach (var delusion in bot.Delusions.OrderBy(d => Guid.NewGuid()).Take(rounds).ToArray())
+                    {
+                        jsonWriter.WriteValue(delusion);
+                    }
+
+                    jsonWriter.WriteEndArray();
+
 
                     jsonWriter.WriteEndObject();
                     streamWriter.Flush();
@@ -77,7 +84,11 @@ namespace DelusionalApi.Service
             Directory.CreateDirectory(usedFolder);
             Directory.Delete(usedFolder, true);
             FileSystem.CopyDirectory(directoryPath, usedFolder);
-            FileSystem.DeleteFile(Path.Combine(directoryPath, ".lock"));
+
+            if (File.Exists(Path.Combine(directoryPath, ".lock")))
+            {
+                FileSystem.DeleteFile(Path.Combine(directoryPath, ".lock"));
+            }
         }
 
         public string GetFullUsedPath(Voice voice)

@@ -1,3 +1,4 @@
+using DelusionalApi.Controllers;
 using DelusionalApi.Model.Bots;
 using DelusionalApi.Service;
 using Hangfire;
@@ -8,6 +9,7 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.FileProviders;
 using Microsoft.Extensions.Hosting;
+using Microsoft.Extensions.Logging;
 using System.IO;
 using System.Text.Json.Serialization;
 
@@ -52,7 +54,6 @@ namespace DelusionalApi
 
             services.AddHttpContextAccessor();
 
-
             var provider = services.BuildServiceProvider();
 
             GlobalConfiguration.Configuration.UseSQLiteStorage();
@@ -61,7 +62,10 @@ namespace DelusionalApi
             services.AddHangfire(c => c.UseSQLiteStorage());
 
             services.AddMemoryCache();
-            
+
+            services.AddLogging(configure => configure.AddConsole())
+                .AddTransient<DelusionController>();
+
             var botScriptService = provider.GetRequiredService<BotScriptService>();
 
             var ren = new RenBot();
