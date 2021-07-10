@@ -1,8 +1,12 @@
+using DelusionalApi.Model.Bots;
 using DelusionalApi.Service;
+using Hangfire;
+using Hangfire.Storage.SQLite;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.FileProviders;
 using Microsoft.Extensions.Hosting;
 using System.IO;
 using System.Text.Json.Serialization;
@@ -42,9 +46,28 @@ namespace DelusionalApi
             services.AddSingleton(AppSetttings);
             services.AddSingleton<IDelusionDictionary, DelusionDictionary>();
             services.AddSingleton<ISpeechService, CustomVoiceService>();
-            services.AddScoped<IVoicePromptsService, VoicePromptsService>();
+
+            services.AddSingleton<BotScriptService>();
+
 
             services.AddHttpContextAccessor();
+
+
+            var provider = services.BuildServiceProvider();
+
+            GlobalConfiguration.Configuration.UseSQLiteStorage();
+            services.AddHangfireServer();
+
+            services.AddHangfire(c => c.UseSQLiteStorage());
+
+            services.AddMemoryCache();
+            
+            var botScriptService = provider.GetRequiredService<BotScriptService>();
+
+            var ren = new RenBot();
+
+            RecurringJob.AddOrUpdate("botScriptGeneration", () => botScriptService.PrepareBotScripts(ren, 3), Cron.Minutely());
+
         }
 
         // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.
@@ -68,6 +91,15 @@ namespace DelusionalApi
                 c.RoutePrefix = string.Empty;
             });
 
+            app.UseStaticFiles(new StaticFileOptions
+            {
+                FileProvider = new PhysicalFileProvider(
+                    Path.Combine(env.ContentRootPath, "Scripts")),
+                RequestPath = "/Scripts"
+            });
+
+            app.UseHangfireDashboard();
+
             app.UseHttpsRedirection();
 
             app.UseRouting();
@@ -78,6 +110,7 @@ namespace DelusionalApi
             {
                 endpoints.MapControllers();
             });
+            
         }
     }
 }

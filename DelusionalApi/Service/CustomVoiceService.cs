@@ -61,13 +61,5 @@ namespace DelusionalApi.Service
 
             return null;
         }
-
-        public Uri VoiceUrl(string words, Voice voice, params string[] args)
-        {
-            return _httpContextAccessor.HttpContext.Request
-                .WithPath("/Delusion/Say")
-                .SetQueryParams(new { words = string.Format(words, args), voice = voice })
-                .ToUri();
-        }
     }
 }

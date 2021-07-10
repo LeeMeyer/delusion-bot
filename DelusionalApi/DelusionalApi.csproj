@@ -16,8 +16,32 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <None Remove="Scripts\Ren\goodbye.wav" />
+    <None Remove="Scripts\Ren\intro.wav" />
+    <None Remove="Scripts\Ren\prompt_0.wav" />
+    <None Remove="Scripts\Ren\prompt_1.wav" />
+    <None Remove="Scripts\Ren\prompt_2.wav" />
+    <None Remove="Scripts\Ren\remark_0.wav" />
+    <None Remove="Scripts\Ren\remark_1.wav" />
+    <None Remove="Scripts\Ren\remark_2.wav" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Content Include="Scripts\Ren\goodbye.wav" />
+    <Content Include="Scripts\Ren\intro.wav" />
+    <Content Include="Scripts\Ren\prompt_0.wav" />
+    <Content Include="Scripts\Ren\prompt_1.wav" />
+    <Content Include="Scripts\Ren\prompt_2.wav" />
+    <Content Include="Scripts\Ren\remark_0.wav" />
+    <Content Include="Scripts\Ren\remark_1.wav" />
+    <Content Include="Scripts\Ren\remark_2.wav" />
+  </ItemGroup>
+
+  <ItemGroup>
     <PackageReference Include="Catalyst.WordNet" Version="1.0.18054" />
     <PackageReference Include="Flurl" Version="3.0.2" />
+    <PackageReference Include="Hangfire" Version="1.7.24" />
+    <PackageReference Include="Hangfire.Storage.SQLite" Version="0.3.0" />
     <PackageReference Include="Microsoft.CognitiveServices.Speech" Version="1.16.0" />
     <PackageReference Include="Microsoft.VisualStudio.Azure.Containers.Tools.Targets" Version="1.10.9" />
     <PackageReference Include="Neo4jClient" Version="4.1.6" />

@@ -1,14 +1,14 @@
-﻿using System;
-using System.Collections.Generic;
-using System.IO;
-using System.Linq;
-using System.Net.Http;
+﻿using System.IO;
 using System.Threading.Tasks;
 using DelusionalApi.Model;
 using DelusionalApi.Service;
 using Microsoft.AspNetCore.Mvc;
 using Twilio;
 using Twilio.Rest.Api.V2010.Account;
+using Twilio.TwiML;
+using Flurl;
+using Microsoft.Extensions.Caching.Memory;
+using Newtonsoft.Json.Linq;
 
 namespace DelusionalApi.Controllers
 {
@@ -21,24 +21,31 @@ namespace DelusionalApi.Controllers
         private readonly IDelusionDictionary _delusionDictionary;
         private readonly ISpeechService _speechService;
         private readonly AppSetttings _appSetttings;
-        private readonly IVoicePromptsService _voicePromptsService;
+        private readonly BotScriptService _botScriptService;
+        private readonly IMemoryCache _memoryCache;
 
         public DelusionController(IConceptGraphDb conceptGraphDb, IAssociationFormatter associationFormatter,
-            IDelusionDictionary delusionDictionary, ISpeechService speechService, AppSetttings appSetttings, 
-            IVoicePromptsService voicePromptsService)
+            IDelusionDictionary delusionDictionary, ISpeechService speechService, AppSetttings appSetttings,
+            BotScriptService botScriptService, IMemoryCache memoryCache)
         {
             _conceptGraphDb = conceptGraphDb;
             _associationFormatter = associationFormatter;
             _delusionDictionary = delusionDictionary;
             _speechService = speechService;
             _appSetttings = appSetttings;
-            _voicePromptsService = voicePromptsService;
+            _botScriptService = botScriptService;
+            _memoryCache = memoryCache;
         }
 
         [HttpPost]
         [Route("Call")]
+        [ApiExplorerSettings(IgnoreApi = false)]
         public IActionResult Call(string phoneNumber)
         {
+            var voice = Voice.Ren;
+            _botScriptService.GenerateUsedDirectory(voice);
+            var usedPath = _botScriptService.GetRelativeUsedPath(voice);
+
             if (phoneNumber.StartsWith("04"))
             {
                 phoneNumber = "+61" + phoneNumber.Substring(1);
@@ -48,18 +55,25 @@ namespace DelusionalApi.Controllers
 
             TwilioClient.Init(_appSetttings.TwilioSettings.TwilioAccountSid, _appSetttings.TwilioSettings.TwilioAuthToken);
 
-            var introduction = _voicePromptsService.FirstVoicePrompt(Request.WithPath("/Delusion/HandleYesOrNo"));
+            var twiml = new VoiceResponse()
+                .Play(HttpContext.Request.WithPath(Path.Combine(usedPath, "intro.wav")))
+                .Play(HttpContext.Request.WithPath(Path.Combine(usedPath, "prompt_0.wav")))
+                .Gather(HttpContext.Request
+                                .WithPath("HandleVoicePromptResponse")
+                                .SetQueryParams(new { promptIndex = 0, voice })
+                                .ToUri())
+                .Pause(int.MaxValue);
 
-            /*var call = CallResource.Create(
+            CallResource.Create(
                 record: true,
-                twiml: introduction.ToString(),
+                twiml: twiml.ToString(),
                 to: new Twilio.Types.PhoneNumber(phoneNumber),
                 from: new Twilio.Types.PhoneNumber(_appSetttings.TwilioSettings.CallerId)
-            );*/
+            );
 
             return new ContentResult
             {
-                Content = introduction.ToString(),
+                Content = string.Empty,
                 ContentType = "application/xml",
                 StatusCode = 200
             };
@@ -67,57 +81,72 @@ namespace DelusionalApi.Controllers
 
         [HttpGet]
         [Route("HandleVoicePromptResponse")]
-        public async Task<IActionResult> HandleVoicePromptResponse(string SpeechResult, int promptIndex = 0)
+        [ApiExplorerSettings(IgnoreApi = true)]
+        public async Task<IActionResult> HandleVoicePromptResponse([FromQuery] string CallSid, [FromQuery] string UnstableSpeechResult, [FromQuery] int SequenceNumber, [FromQuery] decimal Stability, [FromQuery] int promptIndex, [FromQuery] Voice voice)
         {
-            var response = _voicePromptsService.HandleVoicePromptResponse(SpeechResult, promptIndex);
-
-            return new ContentResult
+            var previousPromptFile = Path.Combine(_botScriptService.GetFullUsedPath(voice), $"prompt_{promptIndex}.wav");
+           
+            if (promptIndex >= 2)
             {
-                Content = response.ToString(),
-                ContentType = "application/xml",
-                StatusCode = 200
-            };
+                var goodbyePath = Path.Combine(_botScriptService.GetRelativeUsedPath(voice), $"goodbye.wav");
+                var twiml = new VoiceResponse().Play(HttpContext.Request.WithPath(goodbyePath));
+
+                await Task.Delay(200);
+
+                CallResource.Update(pathSid: CallSid, twiml: twiml.ToString());
+            }
+            else
+            {
+                if (System.IO.File.Exists(previousPromptFile))
+                {
+                    System.IO.File.Delete(previousPromptFile);
+
+                    var commentPath = Path.Combine(_botScriptService.GetRelativeUsedPath(voice), $"remark_{promptIndex}.wav");
+                    var delusionPath = Path.Combine(_botScriptService.GetRelativeUsedPath(voice), $"delusion_{promptIndex}.wav");
+
+                    var twiml = 
+                        new VoiceResponse()
+                                .Play(HttpContext.Request.WithPath(commentPath))
+                                .Play(HttpContext.Request.WithPath(delusionPath))
+                                .Gather(HttpContext.Request.WithPath("HandleVoicePromptResponse").SetQueryParams(new { promptIndex, voice }).ToUri());
+
+                    CallResource.Update(pathSid: CallSid, twiml: twiml.ToString());
+                }
+
+                await GenerateDelusion(UnstableSpeechResult, SequenceNumber, Stability, promptIndex, voice);
+            }
+
+            return Ok();
         }
 
-        /// <summary>
-        /// Gets delusional text connecting the passed-in word to a delusion. Even when the parameters are the same,
-        /// response text generation involves randomness and can vary for each request.
-        /// </summary>
-        /// <remarks>
-        /// Sample request:
-        ///
-        ///     GET /Delusion?word=swim&amp;delusionType=Intruders
-        ///     
-        /// Sample response:
-        /// 
-        ///     "Heat causes the desire to swim. Starting flame or fire requires heat. Starting flame or fire causes death. Death is created by homicide. Manslaughter is homicide.  I killed the invader in the bathtub. I grabbed him, and ran to the tub, strangling and suffocating him with the wires under cold water."
-        ///
-        /// Sample request:
-        ///
-        ///     GET /Delusion?word=swim&amp;delusionType=Impregnate
-        ///     
-        /// Sample response:
-        /// 
-        ///     "Fish can swim. Fish is animal. Animal can live. Live requires conceived.  You know you were sired via illegal artificial insemination."
-        /// </remarks>
-        /// <param name="word"></param>
-        /// <param name="delusionType">If not specified, defaults to random</param>
-        /// <returns>Delusional ramblings</returns>
-        /// <response code="200">Returns a delusional string</response>           
-        [HttpGet]
-        [ApiExplorerSettings(IgnoreApi = true)]
-        public async Task<IActionResult> Get(Voice voice = Voice.Random, string word = "silence", DelusionType? delusionType = null)
+        private async Task GenerateDelusion(string UnstableSpeechResult, int SequenceNumber, decimal Stability, int promptIndex, Voice voice)
         {
-            if (!delusionType.HasValue)
-            {
-                delusionType = (DelusionType)new Random().Next(0, (int)DelusionType.Impregnate);
-            }
+            var priorInputCacheKey = $"prior-input-{voice}-{promptIndex}";
+            var priorInput = _memoryCache.Get<(int sequenceNumber, decimal stability, bool exists)>(priorInputCacheKey);
 
-            if (voice == Voice.Random)
+            if (!priorInput.exists || (SequenceNumber > priorInput.sequenceNumber && Stability >= priorInput.stability))
             {
-                voice = Enum.GetValues(typeof(Voice)).Cast<Voice>().OrderBy(v => Guid.NewGuid()).First();
-            }
+                DelusionType[] delusions = ReadDelusionsScript(voice);
 
+                var delusionPath = Path.Combine(_botScriptService.GetFullUsedPath(voice), $"delusion_{promptIndex}.wav");
+
+                await SaveDelusion(voice, UnstableSpeechResult, delusions[promptIndex], delusionPath);
+
+                var currentInput = (sequenceNumber: SequenceNumber, stability: Stability, exists: true);
+                _memoryCache.Set(priorInputCacheKey, currentInput);
+            }
+        }
+
+        private DelusionType[] ReadDelusionsScript(Voice voice)
+        {
+            var delusionScriptPath = Path.Combine(_botScriptService.GetFullUsedPath(voice), "delusions.json");
+            JObject delusionTypes = JObject.Parse(System.IO.File.ReadAllText(delusionScriptPath));
+            var delusions = delusionTypes["Delusions"].Value<DelusionType[]>();
+            return delusions;
+        }
+
+        private async Task SaveDelusion(Voice voice, string word, DelusionType? delusionType, string filePath)
+        {
             var endConcept = _delusionDictionary.RandomConcept(delusionType.Value);
             var associations = _associationFormatter.Format(await _conceptGraphDb.GetAssociations(word, endConcept));
             var delusionDescription = _delusionDictionary.DescribeDelusion(delusionType.Value);
@@ -125,29 +154,7 @@ namespace DelusionalApi.Controllers
 
             var audioStream = await _speechService.SpeakText(output, voice);
 
-            var filePath = Path.Combine(System.AppContext.BaseDirectory, "delusion.wav");
             await audioStream.SaveToWaveFileAsync(filePath);
-            var bytes = System.IO.File.ReadAllBytes(filePath);
-
-            return File(bytes, "audio/wav", $"deulsion.wav");
-        }
-
-        [HttpGet]
-        [Route("Say")]
-        [ApiExplorerSettings(IgnoreApi = true)]
-
-        public async Task<IActionResult> Say(Voice voice, string words)
-        {
-            var audioStream = await _speechService.SpeakText(words, voice);
-
-            var filename = Guid.NewGuid() + ".wav";
-
-            var filePath = Path.Combine(System.AppContext.BaseDirectory, filename);
-            await audioStream.SaveToWaveFileAsync(filePath);
-            var bytes = System.IO.File.ReadAllBytes(filePath);
-            System.IO.File.Delete(filePath);
-
-            return File(bytes, "audio/wav", $"deulsion.wav");
         }
     }
 }
