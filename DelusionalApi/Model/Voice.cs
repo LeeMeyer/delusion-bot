@@ -2,7 +2,6 @@
 {
     public enum Voice
     {
-        Random,
         Ren,
         Felicity,
         Phil,

@@ -32,7 +32,7 @@ namespace DelusionalApi.Service
             {
                 File.Create(Path.Combine(botDirectory, ".lock"), 100, FileOptions.Asynchronous);
 
-                await Save(bot.Intro(randomString), $"{botDirectory}/intro.wav", bot.Voice);
+                await Save(bot.Intro(randomString),$"{botDirectory}/intro.wav", bot.Voice);
                 await Save(bot.Goodbye(randomString), $"{botDirectory}/goodbye.wav", bot.Voice);
 
                 using (var streamWriter = new StreamWriter($"{botDirectory}/delusions.json"))

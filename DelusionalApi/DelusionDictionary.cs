@@ -70,7 +70,7 @@ namespace DelusionalApi
             switch (delusionType)
             {
                 case DelusionType.Witchcraft:
-                    return "The legislation bares semblance to witchcraft, which is illegal.";
+                    return "The legislation bares semblance to witchcruft, which is illegal.";
                 case DelusionType.Intruders:
                     return "I killed the invader in the bathtub. I grabbed him, and ran to the tub, strangling and suffocating him with the wires under cold water.";
                 case DelusionType.Impregnate:

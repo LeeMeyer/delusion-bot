@@ -50,6 +50,7 @@ namespace DelusionalApi
             services.AddSingleton<ISpeechService, CustomVoiceService>();
 
             services.AddSingleton<BotScriptService>();
+            services.AddSingleton<CallService>();
 
 
             services.AddHttpContextAccessor();
@@ -57,7 +58,10 @@ namespace DelusionalApi
             var provider = services.BuildServiceProvider();
 
             GlobalConfiguration.Configuration.UseSQLiteStorage();
-            services.AddHangfireServer();
+            services.AddHangfireServer(options =>
+            {
+                options.Queues = new[] { "calls", "default" };
+            });
 
             services.AddHangfire(c => c.UseSQLiteStorage());
 
@@ -69,9 +73,14 @@ namespace DelusionalApi
             var botScriptService = provider.GetRequiredService<BotScriptService>();
 
             var ren = new RenBot();
+            var bella = new BellaBot();
+            var flic = new FelicityBot();
+            var phil = new CongressBot();
 
             RecurringJob.AddOrUpdate("botScriptGeneration", () => botScriptService.PrepareBotScripts(ren, 3), Cron.Minutely());
-
+            RecurringJob.AddOrUpdate("botScriptGenerationBella", () => botScriptService.PrepareBotScripts(bella, 3), Cron.Minutely());
+            RecurringJob.AddOrUpdate("botScriptGenerationFlic", () => botScriptService.PrepareBotScripts(flic, 3), Cron.Minutely());
+            RecurringJob.AddOrUpdate("botScriptGenerationPhil", () => botScriptService.PrepareBotScripts(phil, 3), Cron.Minutely());
         }
 
         // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.

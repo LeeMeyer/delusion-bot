@@ -24,6 +24,7 @@
     <None Remove="Scripts\Ren\remark_0.wav" />
     <None Remove="Scripts\Ren\remark_1.wav" />
     <None Remove="Scripts\Ren\remark_2.wav" />
+    <None Remove="WordList.txt" />
   </ItemGroup>
 
   <ItemGroup>
@@ -46,12 +47,17 @@
     <PackageReference Include="Microsoft.VisualStudio.Azure.Containers.Tools.Targets" Version="1.10.9" />
     <PackageReference Include="Neo4jClient" Version="4.1.6" />
     <PackageReference Include="OxfordDictionariesAPI" Version="2.0.0" />
+    <PackageReference Include="ResourceLoader" Version="3.1.20095.1" />
     <PackageReference Include="Swashbuckle.AspNetCore" Version="6.1.1" />
     <PackageReference Include="Swashbuckle.AspNetCore.Annotations" Version="6.1.1" />
     <PackageReference Include="Swashbuckle.AspNetCore.Filters" Version="7.0.2" />
     <PackageReference Include="System.Collections" Version="4.3.0" />
     <PackageReference Include="System.Collections.Immutable" Version="5.0.0" />
     <PackageReference Include="Twilio" Version="5.61.1" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <EmbeddedResource Include="WordList.txt" />
   </ItemGroup>
 
 
